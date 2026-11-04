@@ -2,7 +2,7 @@
 
 A Next.js (App Router, TypeScript) demo marketplace that runs every scenario from the guide [Send within Nuvion](https://docs.nuvion.co/guides/send-within-nuvion) against the Nuvion sandbox. Each scenario has its own page, shows who pays whom, what is different about the API calls, and the three requests and responses behind the send.
 
-**Live demo:** https://nuvion-move-funds-nextjs.vercel.app
+**Live demo:** https://mercato.umoh.name.ng
 
 The sandbox host is `https://api.nuvion.dev`. Use sandbox keys only. Do not point this at production.
 
