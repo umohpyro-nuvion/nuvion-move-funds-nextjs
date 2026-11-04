@@ -4,6 +4,8 @@ A small Next.js (App Router, TypeScript) app that moves funds from a child entit
 
 The sandbox host is `https://api.nuvion.dev`. Use a sandbox key (`nv_test_...`). Do not point this at production.
 
+![The form after a successful sandbox transfer](docs/result.png)
+
 ## Setup
 
 ```bash
