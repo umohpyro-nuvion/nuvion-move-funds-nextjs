@@ -12,6 +12,8 @@ const fields = [
   ["paymentDetailId", "Existing payment detail ID (optional, skips step 2)", false],
 ] as const;
 
+const defaults: Record<string, string> = { amount: "10", currency: "GBP" };
+
 export default function Page() {
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -33,7 +35,7 @@ export default function Page() {
         {fields.map(([name, label, required]) => (
           <label key={name} style={{ display: "grid", gap: 4 }}>
             {label}
-            <input name={name} required={required} style={{ padding: 8 }} />
+            <input name={name} required={required} defaultValue={defaults[name]} style={{ padding: 8 }} />
           </label>
         ))}
         <button disabled={busy} style={{ padding: 10 }}>{busy ? "Sending..." : "Move funds"}</button>
