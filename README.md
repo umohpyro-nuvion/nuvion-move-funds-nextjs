@@ -1,42 +1,51 @@
-# Nuvion: move funds from a child entity to its parent
+# Mercato: send money within Nuvion
 
-A small Next.js (App Router, TypeScript) app that moves funds from a child entity to its parent with the Nuvion sandbox API. It implements the guide [Move funds from a child entity to its parent](https://docs.nuvion.co/guides/move-funds-to-parent).
+A Next.js (App Router, TypeScript) demo marketplace that runs every scenario from the guide [Send within Nuvion](https://docs.nuvion.co/guides/send-within-nuvion) against the Nuvion sandbox. Each scenario has its own page, shows who pays whom, what is different about the API calls, and the three requests and responses behind the send.
 
-The sandbox host is `https://api.nuvion.dev`. Use a sandbox key (`nv_test_...`). Do not point this at production.
+**Live demo:** https://nuvion-move-funds-nextjs.vercel.app
 
-![The form after a successful sandbox transfer](docs/result.png)
+The sandbox host is `https://api.nuvion.dev`. Use sandbox keys only. Do not point this at production.
 
-**Live demo:** https://nuvion-move-funds-nextjs.vercel.app. Enter a sandbox API key in the form. The key is sent to the route handler for that request only and is not stored.
+## The seven scenarios
 
-## Setup
+| Page | Sender | Recipient | API key | `entity_id` |
+|---|---|---|---|---|
+| Between your own accounts | Mercato | Mercato reserve | Parent's | Left out |
+| Pay another Nuvion customer | Mercato | Northwind Supplies | Parent's | Left out |
+| Child pays its parent | Seller | Mercato | Parent's | The seller's, on every call |
+| Parent pays a child | Mercato | Seller | Parent's | Left out |
+| Between two children | Seller | Second seller | Parent's | The paying seller's, on every call |
+| Child pays another customer | Seller | Northwind Supplies | Parent's | The seller's, on every call |
+| Another customer pays a child | Northwind Supplies | Seller | Northwind's own | Left out |
+
+## Run it
 
 ```bash
-cp .env.example .env.local
-# set NUVION_API_KEY to the parent's sandbox secret key
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000, go to **Setup**, and enter your sandbox values once: the parent's API key, Northwind's API key (only for the last scenario), and for each party its name, account ID, account number (`nuvion_ban`) and, for sellers, entity ID. A scenario unlocks when everything it needs is filled in.
+
+The keys and IDs live in `sessionStorage`, so they stay in your browser tab and are gone when you close it. The route handler uses a key only to call Nuvion for that request. It does not log or store it.
 
 | Variable | Description |
 |---|---|
-| `NUVION_API_KEY` | The parent's secret API key. Read only by the route handler, never sent to the browser. Optional if you enter a key in the form's API key field instead. |
 | `NUVION_BASE_URL` | Optional. Defaults to `https://api.nuvion.dev`. |
 
-## What the form does
+## What a send does
 
-Enter the child entity ID, the child account ID, the parent's `nuvion_ban`, the amount in minor units and the currency. [`app/api/move-funds/route.ts`](app/api/move-funds/route.ts) then calls, with the parent's key and the child's `entity_id`:
+[`app/api/send/route.ts`](app/api/send/route.ts) makes the same three calls in every scenario:
 
-1. `POST /counterparties`: creates the parent as a business counterparty under the child. Skipped when you supply a counterparty ID.
-2. `POST /payment-details`: adds a `book-transfer` payment detail whose `account_number` is the parent's `nuvion_ban`. Skipped when you supply a payment detail ID.
-3. `POST /transfers`: sends a `book-transfer` with a fresh `unique_reference` (`MOVE-<timestamp>`).
+1. `POST /counterparties` creates the recipient as a business counterparty. Done once per recipient.
+2. `POST /payment-details` adds a `book-transfer` payment detail whose `account_number` is the recipient's `nuvion_ban`. Done once per recipient.
+3. `POST /transfers` sends a `book-transfer` with a fresh `unique_reference`.
 
-The page shows the transfer `status`, `applicable_fee` and the raw response. API errors, such as `409 error_duplicate_resource`, `422` validation errors and `error_transfer_insufficient_funds`, show the API message and the step that failed.
+Steps 1 and 2 are remembered per sender and recipient for the tab, so a second send reuses them. Adding the same `nuvion_ban` to a counterparty twice returns `422 error_duplicate_resource`. The scenario definitions are in [`lib/scenarios.ts`](lib/scenarios.ts).
 
-The sender pays the fee on top of the amount, so keep the amount plus `applicable_fee` within the child account's balance.
+The sender pays `applicable_fee` on top of the amount, so keep the amount plus the fee within the paying account's balance. Amounts are entered in major units and sent in minor units.
 
 ## Notes
 
-- Each submit creates a new counterparty and payment detail. To move funds again, paste the counterparty ID and payment detail ID from the first run into the optional fields. Adding the same `nuvion_ban` twice returns `422 error_duplicate_resource` on step 2, and the form shows that message.
 - No database and no auth layer. This is a demo, not a production service.
+- Light, dark and system themes. The choice is saved in `localStorage`.

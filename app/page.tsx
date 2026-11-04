@@ -1,56 +1,63 @@
 "use client";
-import { useState } from "react";
+import Link from "next/link";
+import { SCENARIOS, PARTY_META, missingFor } from "@/lib/scenarios";
+import { useStore } from "@/components/Store";
+import { Avatar, Icon } from "@/components/ui";
 
-const fields = [
-  ["apiKey", "Parent sandbox API key (sandbox only, sent to the server, never stored)", false],
-  ["entityId", "Child entity ID", true],
-  ["accountId", "Child account ID", true],
-  ["parentAccountNumber", "Parent account number (nuvion_ban)", true],
-  ["amount", "Amount (minor units)", true],
-  ["currency", "Currency (e.g. GBP)", true],
-  ["parentName", "Parent legal name (optional)", false],
-  ["counterpartyId", "Existing counterparty ID (optional, skips step 1)", false],
-  ["paymentDetailId", "Existing payment detail ID (optional, skips step 2)", false],
-] as const;
-
-const defaults: Record<string, string> = { amount: "10", currency: "GBP" };
-
-export default function Page() {
-  const [result, setResult] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    const res = await fetch("/api/move-funds", { method: "POST", body: JSON.stringify(data) });
-    setResult({ ok: res.ok, ...(await res.json()) });
-    setBusy(false);
-  }
-
+export default function Home() {
+  const { cfg, ready } = useStore();
+  const readyCount = SCENARIOS.filter((s) => missingFor(s, cfg).length === 0).length;
   return (
-    <main>
-      <h1>Move funds to parent</h1>
-      <p>Sandbox only. Runs counterparty, payment detail and book transfer with the parent's API key.</p>
-      <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
-        {fields.map(([name, label, required]) => (
-          <label key={name} style={{ display: "grid", gap: 4 }}>
-            {label}
-            <input name={name} type={name === "apiKey" ? "password" : "text"} autoComplete="off" required={required} defaultValue={defaults[name]} style={{ padding: 8 }} />
-          </label>
-        ))}
-        <button disabled={busy} style={{ padding: 10 }}>{busy ? "Sending..." : "Move funds"}</button>
-      </form>
-      {result && (
-        <section style={{ marginTop: 24 }}>
-          {result.ok ? (
-            <p><strong>Status:</strong> {result.status} <strong>Fee:</strong> {String(result.applicableFee)}</p>
-          ) : (
-            <p style={{ color: "crimson" }}><strong>{result.step ? `${result.step} failed (${result.status}): ` : ""}</strong>{result.error}</p>
-          )}
-          <pre style={{ background: "#f4f4f4", padding: 12, overflow: "auto" }}>{JSON.stringify(result.transfer ?? result.body ?? result, null, 2)}</pre>
+    <>
+      <section className="hero">
+        <p className="eyebrow light">Mercato on Nuvion</p>
+        <h1>Send money within Nuvion, seven ways.</h1>
+        <p>Mercato is a marketplace with sellers. Each card below is one real situation from the book transfer guide. Pick one, press send, and see the three API calls it makes.</p>
+        <div className="hero-actions">
+          <Link href="/setup" className="btn light">{ready && readyCount === 0 ? "Set up your sandbox" : "Edit sandbox setup"}</Link>
+          <a className="btn ghost" href="https://docs.nuvion.co/guides/send-within-nuvion" target="_blank" rel="noreferrer">Read the guide</a>
+        </div>
+      </section>
+
+      <div className="page">
+        {ready && readyCount < SCENARIOS.length && (
+          <Link href="/setup" className="notice">
+            <Icon name="key" /> <span><b>{readyCount} of {SCENARIOS.length} scenarios ready.</b> Add your sandbox API key, entity IDs, account IDs and account numbers on the setup page to unlock the rest.</span>
+            <Icon name="arrow" />
+          </Link>
+        )}
+
+        <div className="grid">
+          {SCENARIOS.map((s, i) => {
+            const from = cfg.parties[s.from], to = cfg.parties[s.to];
+            return (
+              <Link key={s.id} href={`/send/${s.id}`} className="card scenario" style={{ ["--c" as string]: s.color }}>
+                <div className="card-band"><span>Scenario {i + 1}</span></div>
+                <div className="flow">
+                  <Avatar name={from.name} color={s.color} />
+                  <Icon name="arrow" />
+                  <Avatar name={to.name} color={s.color} />
+                </div>
+                <h3>{s.title}</h3>
+                <p>{s.story}</p>
+                <div className="chips">
+                  <span className="chip">{s.key === "customerKey" ? "Their own key" : "Parent's key"}</span>
+                  <span className="chip">{PARTY_META[s.from].child ? "Sends entity_id" : "No entity_id"}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        <section className="how">
+          <h2>What every send does</h2>
+          <ol>
+            <li><b>Create a counterparty.</b> The recipient, once. Mercato remembers it for the next send.</li>
+            <li><b>Add a payment detail.</b> The recipient's Nuvion account number, as a <code>book-transfer</code>.</li>
+            <li><b>Send the transfer.</b> It is <code>successful</code> straight away. The sender also pays a fee on top.</li>
+          </ol>
         </section>
-      )}
-    </main>
+      </div>
+    </>
   );
 }
