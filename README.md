@@ -19,7 +19,7 @@ Open http://localhost:3000.
 
 | Variable | Description |
 |---|---|
-| `NUVION_API_KEY` | The parent's secret API key. Read only by the route handler, never sent to the browser. |
+| `NUVION_API_KEY` | The parent's secret API key. Read only by the route handler, never sent to the browser. Optional if you enter a key in the form's API key field instead. |
 | `NUVION_BASE_URL` | Optional. Defaults to `https://api.nuvion.dev`. |
 
 ## What the form does

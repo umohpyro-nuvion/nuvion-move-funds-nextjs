@@ -16,10 +16,10 @@ function messageOf(body: any): string {
   return v?.length ? v.join("; ") : body?.type ?? "Unknown error";
 }
 
-async function call(step: string, path: string, body: unknown) {
+async function call(key: string, step: string, path: string, body: unknown) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.NUVION_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
@@ -28,10 +28,12 @@ async function call(step: string, path: string, body: unknown) {
 }
 
 export async function POST(req: Request) {
-  if (!process.env.NUVION_API_KEY) {
-    return NextResponse.json({ error: "NUVION_API_KEY is not set. Copy .env.example to .env.local." }, { status: 500 });
-  }
   const f = await req.json();
+  // A key typed into the form wins, so a hosted copy needs no server-side secret.
+  const key: string = f.apiKey || process.env.NUVION_API_KEY || "";
+  if (!key) {
+    return NextResponse.json({ error: "No API key. Enter one in the form or set NUVION_API_KEY in .env.local." }, { status: 400 });
+  }
   const { entityId, accountId, parentAccountNumber, currency } = f;
   const amount = Number(f.amount);
   if (!entityId || !accountId || !parentAccountNumber || !currency || !Number.isInteger(amount) || amount < 1) {
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
     // Step 1: parent as a counterparty under the child (skipped when an ID is supplied).
     let counterpartyId: string = f.counterpartyId;
     if (!counterpartyId) {
-      const cp = await call("counterparty", "/counterparties", {
+      const cp = await call(key, "counterparty", "/counterparties", {
         type: "business",
         entity_id: entityId,
         nickname: "Parent treasury",
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
 
     // Step 2: book-transfer payment detail pointing at the parent's nuvion_ban.
     // Skipped when a payment detail ID is supplied: the same account number can't be added twice for a counterparty.
-    const pd = f.paymentDetailId ? { id: f.paymentDetailId } : await call("payment detail", "/payment-details", {
+    const pd = f.paymentDetailId ? { id: f.paymentDetailId } : await call(key, "payment detail", "/payment-details", {
       payment_method: "book-transfer",
       currency,
       account_holder_name: f.parentName || "Parent Entity",
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
     });
 
     // Step 3: the transfer. A fresh unique_reference per move makes retries safe.
-    const transfer = await call("transfer", "/transfers", {
+    const transfer = await call(key, "transfer", "/transfers", {
       entity_id: entityId,
       account_id: accountId,
       counterparty_id: counterpartyId,

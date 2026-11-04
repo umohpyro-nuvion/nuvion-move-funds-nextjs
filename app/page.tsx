@@ -2,6 +2,7 @@
 import { useState } from "react";
 
 const fields = [
+  ["apiKey", "Parent sandbox API key (sandbox only, sent to the server, never stored)", false],
   ["entityId", "Child entity ID", true],
   ["accountId", "Child account ID", true],
   ["parentAccountNumber", "Parent account number (nuvion_ban)", true],
@@ -35,7 +36,7 @@ export default function Page() {
         {fields.map(([name, label, required]) => (
           <label key={name} style={{ display: "grid", gap: 4 }}>
             {label}
-            <input name={name} required={required} defaultValue={defaults[name]} style={{ padding: 8 }} />
+            <input name={name} type={name === "apiKey" ? "password" : "text"} autoComplete="off" required={required} defaultValue={defaults[name]} style={{ padding: 8 }} />
           </label>
         ))}
         <button disabled={busy} style={{ padding: 10 }}>{busy ? "Sending..." : "Move funds"}</button>
