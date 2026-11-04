@@ -25,7 +25,7 @@ Open http://localhost:3000.
 Enter the child entity ID, the child account ID, the parent's `nuvion_ban`, the amount in minor units and the currency. [`app/api/move-funds/route.ts`](app/api/move-funds/route.ts) then calls, with the parent's key and the child's `entity_id`:
 
 1. `POST /counterparties`: creates the parent as a business counterparty under the child. Skipped when you supply a counterparty ID.
-2. `POST /payment-details`: adds a `book-transfer` payment detail whose `account_number` is the parent's `nuvion_ban`.
+2. `POST /payment-details`: adds a `book-transfer` payment detail whose `account_number` is the parent's `nuvion_ban`. Skipped when you supply a payment detail ID.
 3. `POST /transfers`: sends a `book-transfer` with a fresh `unique_reference` (`MOVE-<timestamp>`).
 
 The page shows the transfer `status`, `applicable_fee` and the raw response. API errors, such as `409 error_duplicate_resource`, `422` validation errors and `error_transfer_insufficient_funds`, show the API message and the step that failed.
@@ -34,5 +34,5 @@ The sender pays the fee on top of the amount, so keep the amount plus `applicabl
 
 ## Notes
 
-- Each submit creates a new counterparty and payment detail unless you supply a counterparty ID. Reusing the same `nuvion_ban` for the same counterparty can return `error_duplicate_resource` on step 2.
+- Each submit creates a new counterparty and payment detail. To move funds again, paste the counterparty ID and payment detail ID from the first run into the optional fields. Adding the same `nuvion_ban` twice returns `422 error_duplicate_resource` on step 2, and the form shows that message.
 - No database and no auth layer. This is a demo, not a production service.

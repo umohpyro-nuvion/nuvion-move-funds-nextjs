@@ -9,6 +9,7 @@ const fields = [
   ["currency", "Currency (e.g. GBP)", true],
   ["parentName", "Parent legal name (optional)", false],
   ["counterpartyId", "Existing counterparty ID (optional, skips step 1)", false],
+  ["paymentDetailId", "Existing payment detail ID (optional, skips step 2)", false],
 ] as const;
 
 export default function Page() {

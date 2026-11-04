@@ -8,10 +8,11 @@ class ApiError extends Error {
   }
 }
 
-// Error bodies carry either `message` or a `validations` array with one message per field.
+// Error bodies carry a `message`, plus a `validations` array for field errors.
 function messageOf(body: any): string {
   if (body?.message) return body.message;
-  const v = body?.validations?.map((x: any) => `${x.field ?? ""} ${x.message ?? x.type}`.trim());
+  // Each validation is `{ <field>: { type, message } }`.
+  const v = body?.validations?.flatMap((x: any) => Object.values(x).map((e: any) => e.message ?? e.type));
   return v?.length ? v.join("; ") : body?.type ?? "Unknown error";
 }
 
@@ -23,7 +24,7 @@ async function call(step: string, path: string, body: unknown) {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, step, json);
-  return json;
+  return json.data ?? json; // successful responses wrap the object in `data`
 }
 
 export async function POST(req: Request) {
@@ -56,7 +57,8 @@ export async function POST(req: Request) {
     }
 
     // Step 2: book-transfer payment detail pointing at the parent's nuvion_ban.
-    const pd = await call("payment detail", "/payment-details", {
+    // Skipped when a payment detail ID is supplied: the same account number can't be added twice for a counterparty.
+    const pd = f.paymentDetailId ? { id: f.paymentDetailId } : await call("payment detail", "/payment-details", {
       payment_method: "book-transfer",
       currency,
       account_holder_name: f.parentName || "Parent Entity",
