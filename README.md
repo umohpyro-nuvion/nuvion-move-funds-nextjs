@@ -6,6 +6,8 @@ The sandbox host is `https://api.nuvion.dev`. Use a sandbox key (`nv_test_...`).
 
 ![The form after a successful sandbox transfer](docs/result.png)
 
+**Live demo:** https://nuvion-move-funds-nextjs.vercel.app. Enter a sandbox API key in the form. The key is sent to the route handler for that request only and is not stored.
+
 ## Setup
 
 ```bash
