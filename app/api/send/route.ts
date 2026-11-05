@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { limited } from "@/lib/ratelimit";
 
 const BASE = process.env.NUVION_BASE_URL ?? "https://api.nuvion.dev";
 
@@ -12,6 +13,11 @@ function messageOf(body: any): string {
 }
 
 export async function POST(req: Request) {
+  // Vercel sets x-forwarded-for; the first entry is the client.
+  const wait = limited(req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local");
+  if (wait) {
+    return NextResponse.json({ ok: false, error: `Too many requests. Try again in ${wait} seconds.`, steps: [] }, { status: 429, headers: { "Retry-After": String(wait) } });
+  }
   const f = await req.json();
   const { apiKey, entityId, accountId, currency, recipient } = f;
   const amount = Number(f.amount);
